@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import {
+  ArrowUpRight,
   Bookmark,
+  Camera,
   Check,
   ChevronRight,
   Compass,
@@ -8,17 +10,23 @@ import {
   Filter,
   Heart,
   MapPin,
+  Mountain,
   Plane,
   Search,
   Share2,
   Sparkles,
   Star,
+  Waves,
   UserRound,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import heroImage from "@/assets/wanderwise-hero.jpg";
+import jaipurImage from "@/assets/destination-jaipur.jpg";
+import goaImage from "@/assets/destination-goa.jpg";
+import keralaImage from "@/assets/destination-kerala.jpg";
+import kashmirImage from "@/assets/destination-kashmir.jpg";
 import { mockHotels, type Hotel } from "@/data/mock-hotels";
 import { recordInteraction, searchStays } from "@/services/api";
 import { getSessionId } from "@/utils/session";
@@ -35,6 +43,16 @@ const suggestions = [
 ];
 
 const loadingCopy = ["Understanding your search…", "Finding matching stays…", "Personalizing your recommendations…"];
+
+const destinations = [
+  { name: "Udaipur", note: "Royal escapes by the lake", image: heroImage, icon: Sparkles },
+  { name: "Jaipur", note: "Courtyards glowing after dusk", image: jaipurImage, icon: Compass },
+  { name: "Goa", note: "Slow sunsets by the sea", image: goaImage, icon: Waves },
+  { name: "Kerala", note: "Still mornings on the backwaters", image: keralaImage, icon: Camera },
+  { name: "Kashmir", note: "Mountain quiet, beautifully framed", image: kashmirImage, icon: Mountain },
+];
+
+type Destination = (typeof destinations)[number];
 
 type ActiveHotel = { hotel: Hotel; mode: "image" | "details" } | null;
 
@@ -96,15 +114,18 @@ export function WanderWiseApp() {
   const [liked, setLiked] = useState<Set<string>>(() => new Set(["htl_lakeview_palace"]));
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const [activeHotel, setActiveHotel] = useState<ActiveHotel>(null);
+  const [activeDestination, setActiveDestination] = useState<Destination | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0);
   const resultsRef = useRef<HTMLElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const onScroll = () => {
       const total = document.documentElement.scrollHeight - window.innerHeight;
       setProgress(total > 0 ? (window.scrollY / total) * 100 : 0);
       setScrolled(window.scrollY > 24);
+      heroRef.current?.style.setProperty("--hero-scroll", `${Math.min(window.scrollY, 520)}px`);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -174,15 +195,25 @@ export function WanderWiseApp() {
         </div>
       </header>
 
-      <section id="top" className="hero-section">
+      <section
+        ref={heroRef}
+        id="top"
+        className="hero-section"
+        onPointerMove={(event) => {
+          const bounds = event.currentTarget.getBoundingClientRect();
+          event.currentTarget.style.setProperty("--pointer-x", `${((event.clientX - bounds.left) / bounds.width - 0.5) * 12}px`);
+          event.currentTarget.style.setProperty("--pointer-y", `${((event.clientY - bounds.top) / bounds.height - 0.5) * 8}px`);
+        }}
+      >
         <div className="hero-image-wrap" aria-hidden="true"><img src={heroImage} width={1920} height={1088} alt="" className="hero-image" /><div className="hero-wash" /></div>
+        <div className="hero-light hero-light-one" aria-hidden="true" /><div className="hero-light hero-light-two" aria-hidden="true" />
         <Plane className="ambient-plane hidden lg:block" aria-hidden="true" />
         <MapPin className="ambient-pin hidden md:block" aria-hidden="true" />
-        <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-20 lg:px-8 lg:pb-24 lg:pt-28">
+        <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-24 lg:px-8 lg:pb-24 lg:pt-32">
           <div className="hero-copy">
-            <p className="hero-enter label-caps text-primary">AI travel discovery</p>
-            <h1 className="hero-enter hero-delay-1 mt-5 max-w-[19ch] font-display text-5xl font-medium leading-[1.03] sm:text-6xl lg:text-7xl">Tell us where you want to go. <span className="italic text-primary">We’ll find the right stay.</span></h1>
-            <p className="hero-enter hero-delay-2 mt-6 max-w-[46ch] text-base leading-relaxed text-muted-foreground sm:text-lg">Search naturally. Discover stays that match your budget, preferences, and travel style.</p>
+            <p className="hero-enter label-caps text-hero-accent">AI travel discovery across India</p>
+            <h1 className="hero-enter hero-delay-1 mt-5 max-w-[16ch] font-display text-5xl font-medium leading-[1.03] text-hero-foreground sm:text-6xl lg:text-7xl">Where do you want to <span className="italic text-hero-accent">wander?</span></h1>
+            <p className="hero-enter hero-delay-2 mt-6 max-w-[44ch] text-base leading-relaxed text-hero-muted sm:text-lg">Tell us how you want your trip to feel. We’ll find stays that fit your budget, preferences, and pace.</p>
           </div>
           <form onSubmit={runSearch} className={`hero-enter hero-delay-3 mt-9 max-w-3xl ${loading ? "is-searching" : ""}`}>
             <div className="search-shell">
@@ -192,7 +223,23 @@ export function WanderWiseApp() {
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-2"><span className="label-caps mr-1 text-muted-foreground">Try</span>{suggestions.map((suggestion, index) => <button key={suggestion} type="button" onClick={() => setQuery(suggestion)} className="suggestion-chip" style={{ "--chip-delay": `${index * 80}ms` } as CSSProperties}>{suggestion}</button>)}</div>
           </form>
-          <div className="hero-enter hero-delay-4 mt-12 flex items-center gap-3 text-sm text-foreground/70"><span className="flex -space-x-2">{["A", "M", "R"].map((letter) => <span key={letter} className="traveler-avatar">{letter}</span>)}</span><span>Thoughtful picks for curious travelers</span></div>
+           <div className="hero-enter hero-delay-4 mt-10 flex items-center gap-3 text-sm text-hero-muted"><span className="flex -space-x-2">{["A", "M", "R"].map((letter) => <span key={letter} className="traveler-avatar">{letter}</span>)}</span><span>Thoughtful picks for curious travelers</span></div>
+          <button type="button" className="hero-memory hero-memory-jaipur" onClick={() => setActiveDestination(destinations[1] ?? null)} aria-label="View Jaipur travel image"><img src={jaipurImage} alt="Jaipur palace courtyard at dusk" width={1408} height={1008} /><span><b>Jaipur</b><small>After dusk</small></span></button>
+          <button type="button" className="hero-memory hero-memory-goa" onClick={() => setActiveDestination(destinations[2] ?? null)} aria-label="View Goa travel image"><img src={goaImage} alt="Goa resort at sunset" width={1408} height={1008} /><span><b>Goa</b><small>By the sea</small></span></button>
+          <button type="button" className="hero-memory hero-memory-kerala" onClick={() => setActiveDestination(destinations[3] ?? null)} aria-label="View Kerala travel image"><img src={keralaImage} alt="Kerala backwater resort" width={1408} height={1008} /><span><b>Kerala</b><small>Backwater calm</small></span></button>
+        </div>
+        <div className="hero-scroll-cue" aria-hidden="true"><span>Explore India</span><i /></div>
+      </section>
+
+      <section id="destinations" className="destinations-section">
+        <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
+          <Reveal><div className="section-heading"><div><p className="label-caps text-accent">Journeys worth taking</p><h2 className="mt-3 max-w-[13ch] font-display text-4xl font-medium leading-tight sm:text-5xl">Explore India, one beautiful stay at a time.</h2></div><p className="max-w-md text-base leading-relaxed text-muted-foreground">From palace courtyards to quiet backwaters, discover places with a sense of story.</p></div></Reveal>
+          <div className="destination-editorial">
+            {destinations.map((destination, index) => {
+              const Icon = destination.icon;
+              return <Reveal key={destination.name} delay={index * 120} className={`destination-slot destination-slot-${index + 1}`}><button type="button" className="destination-card group" onClick={() => setActiveDestination(destination)}><img src={destination.image} alt={`${destination.name}: ${destination.note}`} loading="lazy" width={1408} height={1008} /><span className="destination-shade" /><span className="destination-copy"><span className="destination-icon"><Icon /></span><span><b>{destination.name}</b><small>{destination.note}</small></span><ArrowUpRight className="destination-arrow" /></span></button></Reveal>;
+            })}
+          </div>
         </div>
       </section>
 
@@ -235,9 +282,30 @@ export function WanderWiseApp() {
         </div>
       </section>
 
+      <section className="preference-section">
+        <div className="mx-auto grid max-w-7xl items-center gap-16 px-5 py-20 lg:grid-cols-[.9fr_1.1fr] lg:px-8 lg:py-28">
+          <Reveal><p className="label-caps text-accent">Personal, not generic</p><h2 className="mt-4 max-w-[12ch] font-display text-4xl font-medium leading-tight sm:text-5xl">WanderWise learns what you love.</h2><p className="mt-6 max-w-lg text-lg leading-relaxed text-muted-foreground">Every search and thoughtful choice helps shape recommendations around the way you actually travel.</p><div className="mt-8 flex items-center gap-3 text-sm text-foreground/70"><Sparkles className="size-4 text-accent" /><span>Clear reasons accompany every recommendation.</span></div></Reveal>
+          <Reveal delay={140}><div className="preference-orbit" aria-label="Personalization preferences"><div className="preference-center"><Compass /><strong>YOU</strong><small>Your travel rhythm</small></div>{["Heritage","Lake views","Under ₹4,000","Quiet stays","Great location"].map((label, index) => <span key={label} className={`preference-bubble preference-bubble-${index + 1}`} style={{ "--bubble-delay": `${index * 120}ms` } as CSSProperties}><Check />{label}</span>)}<svg viewBox="0 0 620 420" aria-hidden="true"><path d="M80 130 C190 80 210 180 310 210 S450 110 550 135"/><path d="M90 315 C210 370 235 245 310 210 S440 330 535 305"/></svg></div></Reveal>
+        </div>
+      </section>
+
+      <section className="route-section">
+        <div className="mx-auto max-w-6xl px-5 py-20 lg:px-8 lg:py-24">
+          <Reveal><div className="text-center"><p className="label-caps text-accent">A journey taking shape</p><h2 className="mt-3 font-display text-4xl font-medium sm:text-5xl">Follow the feeling.</h2></div></Reveal>
+          <Reveal delay={120}><div className="india-route" aria-label="Decorative travel route from Delhi to Goa"><span className="route-track" /><Plane className="route-plane" aria-hidden="true" />{["Delhi","Jaipur","Udaipur","Goa"].map((city, index) => <div className={`route-stop route-stop-${index + 1}`} key={city}><span><MapPin /></span><b>{city}</b><small>{["Begin","Heritage","Lakes","Unwind"][index]}</small></div>)}</div></Reveal>
+        </div>
+      </section>
+
+      <section className="final-invitation">
+        <img src={kashmirImage} alt="A warm mountain retreat beside a calm lake in Kashmir" loading="lazy" width={1408} height={1008} />
+        <div className="final-invitation-wash" />
+        <Reveal className="relative z-10"><div className="mx-auto flex max-w-7xl flex-col items-start px-5 py-24 text-hero-foreground lg:px-8 lg:py-32"><p className="label-caps text-hero-accent">Your next stay is waiting</p><h2 className="mt-4 max-w-[12ch] font-display text-5xl font-medium leading-tight sm:text-6xl">Find somewhere you’ll remember.</h2><Button type="button" className="mt-8 rounded-full px-6" onClick={() => document.querySelector<HTMLInputElement>('input[aria-label="Describe your ideal stay"]')?.focus()}>Start exploring<Search /></Button></div></Reveal>
+      </section>
+
       <footer id="saved" className="border-t border-border py-9"><div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 text-sm text-muted-foreground sm:flex-row lg:px-8"><span className="font-display text-lg text-foreground">WanderWise</span><span>Travel smarter. Stay better.</span></div></footer>
 
       <Dialog open={activeHotel !== null} onOpenChange={(open) => !open && setActiveHotel(null)}><DialogContent className="w-[calc(100%-2rem)] max-w-5xl overflow-hidden border-border bg-surface p-0 shadow-modal sm:rounded-2xl"><DialogTitle className="sr-only">{activeHotel?.hotel.name ?? "Hotel preview"}</DialogTitle><DialogDescription className="sr-only">Large travel image and stay details.</DialogDescription>{activeHotel && <div className={activeHotel.mode === "image" ? "" : "grid md:grid-cols-[1.15fr_.85fr]"}><img src={activeHotel.hotel.image} alt={activeHotel.hotel.imageAlt} width={1024} height={768} className={`w-full object-cover ${activeHotel.mode === "image" ? "max-h-[82vh]" : "h-full min-h-80"}`} />{activeHotel.mode === "details" && <div className="flex flex-col p-7 sm:p-9"><p className="label-caps text-primary">{activeHotel.hotel.stars}-star · {activeHotel.hotel.category}</p><h2 className="mt-3 font-display text-3xl font-medium">{activeHotel.hotel.name}</h2><p className="mt-2 text-sm text-muted-foreground">{activeHotel.hotel.location}</p><div className="mt-6 rounded-xl bg-primary/5 p-4"><p className="label-caps text-primary">Why this matches</p><p className="mt-2 text-sm leading-relaxed">{activeHotel.hotel.explanation}</p></div><div className="mt-6 flex flex-wrap gap-2">{activeHotel.hotel.amenities.map((item) => <span className="amenity-pill" key={item}>{item}</span>)}</div><div className="mt-auto flex items-end justify-between gap-4 pt-8"><div><p className="font-display text-3xl font-semibold">₹{Number(activeHotel.hotel.price).toLocaleString("en-IN")}</p><p className="text-xs text-muted-foreground">per night</p></div><Button onClick={() => { void sendInteraction(activeHotel.hotel, "book"); toast.success("Opening booking partner…"); }} className="rounded-full px-6">View / Book<ChevronRight /></Button></div></div>}</div>}</DialogContent></Dialog>
+      <Dialog open={activeDestination !== null} onOpenChange={(open) => !open && setActiveDestination(null)}><DialogContent className="gallery-dialog w-[calc(100%-2rem)] max-w-6xl overflow-hidden border-border bg-surface p-0 shadow-modal sm:rounded-2xl"><DialogTitle className="sr-only">{activeDestination?.name ?? "Destination preview"}</DialogTitle><DialogDescription className="sr-only">Large destination photograph and caption.</DialogDescription>{activeDestination && <figure><img src={activeDestination.image} alt={`${activeDestination.name}: ${activeDestination.note}`} width={1408} height={1008} /><figcaption><span><b>{activeDestination.name}</b><small>{activeDestination.note}</small></span><span className="label-caps">India, beautifully discovered</span></figcaption></figure>}</DialogContent></Dialog>
     </main>
   );
 }
