@@ -122,7 +122,11 @@ export function WanderWiseApp() {
 
   const sendInteraction = async (hotel: Hotel | undefined, interaction_type: Parameters<typeof recordInteraction>[0]["interaction_type"]) => {
     try {
-      await recordInteraction({ session_id: getSessionId(), entity_type: hotel?.entity_type, entity_id: hotel?.entity_id, interaction_type });
+      await recordInteraction({
+        session_id: getSessionId(),
+        interaction_type,
+        ...(hotel ? { entity_type: hotel.entity_type, entity_id: hotel.entity_id } : {}),
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "That action could not be saved.");
     }
@@ -204,7 +208,7 @@ export function WanderWiseApp() {
         <div className="mt-8 grid gap-8 lg:grid-cols-[244px_1fr]">
           <Reveal className="hidden lg:block" delay={80}><aside className="sticky top-24 rounded-2xl border border-border bg-surface/75 p-5 shadow-soft backdrop-blur-xl"><div className="mb-6 flex items-center justify-between"><span className="label-caps">Filters</span><Filter className="size-4 text-primary" /></div><FilterControls price={price} setPrice={setPrice} stars={stars} setStars={setStars} /></aside></Reveal>
           <div className="min-w-0 space-y-5">
-            {loading ? <LoadingCards message={loadingCopy[loadingStep] ?? loadingCopy[0]} /> : visibleResults.length ? visibleResults.map((hotel, index) => (
+            {loading ? <LoadingCards message={loadingCopy[loadingStep] ?? "Understanding your search…"} /> : visibleResults.length ? visibleResults.map((hotel, index) => (
               <Reveal key={hotel.entity_id} delay={index * 110}>
                 <article className="hotel-card group">
                   <button type="button" className="hotel-image-button" onClick={() => setActiveHotel({ hotel, mode: "image" })} aria-label={`Expand image for ${hotel.name}`}>
@@ -227,7 +231,7 @@ export function WanderWiseApp() {
       <section id="story" className="border-y border-border bg-surface py-20 lg:py-28">
         <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 lg:grid-cols-2 lg:px-8">
           <Reveal><p className="label-caps text-primary">A more human way to search</p><h2 className="mt-4 max-w-[13ch] font-display text-4xl font-medium leading-tight sm:text-5xl">From a feeling to the right place.</h2><p className="mt-6 max-w-lg text-lg leading-relaxed text-muted-foreground">WanderWise turns the way you naturally describe a trip into clear, considered recommendations—and explains every match.</p><div className="mt-8 grid gap-5 sm:grid-cols-3">{[[Search,"Describe"],[Sparkles,"Understand"],[Check,"Discover"]].map(([Icon,label],index) => { const I = Icon as typeof Search; return <Reveal key={label as string} delay={index*100}><div className="story-step"><I /><span>{label as string}</span></div></Reveal>; })}</div></Reveal>
-          <Reveal delay={120}><div className="image-collage"><button onClick={() => setActiveHotel({ hotel: mockHotels[0], mode: "image" })} className="collage-main"><img src={mockHotels[0].image} alt={mockHotels[0].imageAlt} loading="lazy" width={1024} height={768} /></button><button onClick={() => setActiveHotel({ hotel: mockHotels[1], mode: "image" })} className="collage-small collage-a"><img src={mockHotels[1].image} alt={mockHotels[1].imageAlt} loading="lazy" width={1024} height={768} /></button><button onClick={() => setActiveHotel({ hotel: mockHotels[2], mode: "image" })} className="collage-small collage-b"><img src={mockHotels[2].image} alt={mockHotels[2].imageAlt} loading="lazy" width={1024} height={768} /></button><span className="route-line" aria-hidden="true"><Plane className="size-4" /></span></div></Reveal>
+          <Reveal delay={120}><div className="image-collage">{mockHotels.filter((hotel) => hotel.entity_id !== "htl_heritage_haveli").map((hotel, index) => <button key={hotel.entity_id} onClick={() => setActiveHotel({ hotel, mode: "image" })} className={index === 0 ? "collage-main" : "collage-small collage-b"}><img src={hotel.image} alt={hotel.imageAlt} loading="lazy" width={1024} height={768} /></button>)}<span className="route-line" aria-hidden="true"><Plane className="size-4" /></span></div></Reveal>
         </div>
       </section>
 

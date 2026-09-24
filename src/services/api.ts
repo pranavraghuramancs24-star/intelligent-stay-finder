@@ -24,7 +24,7 @@ export type SearchResponse = {
 
 export type InteractionType = "view" | "click" | "like" | "save" | "book" | "dismiss" | "share" | "search";
 
-const API_BASE = import.meta.env.VITE_WANDERWISE_API_URL as string | undefined;
+const API_BASE = import.meta.env["VITE_WANDERWISE_API_URL"] as string | undefined;
 
 export async function searchStays(payload: SearchRequest): Promise<SearchResponse> {
   if (!API_BASE) {
